@@ -21,11 +21,6 @@ Store your DICOM files
 stowrs -url https://healthcare.googleapis.com/v1alpha/projects/${PROJECT_ID}/locations/${LOCATION}/datasets/${DATASET}/dicomStores/${DICOMSTORE}/dicomWeb/studies?access_token=$TOKEN SOME_DICOM_FILE.dcm
 ```
 
-**Setup GCP credentials**
-```sh
-export GOOGLE_APPLICATION_CREDENTIALS=/path/to/key.json
-```
-
 **Run de-identification pipeline using MIRC CTP Launcher**
 
 Clone source repository
@@ -38,8 +33,9 @@ cd CTP/products/CTP_extracted
 java -jar Launcher.jar
 ```
 
-- In **RSNA CTP Launcher** window switch to _Configuration_ tab
-- Choose _GoogleCloudImportService_ and set _projectId_, _dicomStoreName_ and _googleCredentials_ properties
+- In **RSNA CTP Launcher** window switch to _Configuration_ tab and click "Authorization->Login with Google" menu
+- Browser window with Google consent screen pops up. Login with your Google account and grant required permissions.
+- Choose _GoogleCloudImportService_ and set _projectId_, _dicomStoreName_ properties
 - Choose _GoogleCloudExportService_ and set _dicomStoreName_ property
 - Click _File -> Save_
 - Switch to _General_ tab and click _Start_ button
