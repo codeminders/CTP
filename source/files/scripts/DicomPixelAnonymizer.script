@@ -17,9 +17,13 @@ For information on the DicomPixelAnonymizer and the format of this file,see:
      CT
 **************
 
- FILTER FOR GOOGLE DEMO
-  { Manufacturer.containsIgnoreCase("i") }
-   (0,0,100,80)
+ FILTERS FOR GOOGLE DEMO
+     { ManufacturerModelName.containsIgnoreCase("GGL1") }
+     (420,920,650,1024)
+     { ManufacturerModelName.containsIgnoreCase("GGL2") }
+     (0,900,300,1024)
+     { ManufacturerModelName.containsIgnoreCase("GGL3") }
+     (410,0,650,80)
 
 GE 
 
