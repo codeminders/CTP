@@ -89,7 +89,7 @@ public class GoogleCloudExportService extends AbstractExportService {
 		}
 
 		try {
-			GoogleAPIClient apiClient = GoogleAPIClientFactory.getInstance().createGoogleClient();
+			GoogleAPIClient apiClient = GoogleAPIClientFactory.getInstance().getGoogleClient();
 			apiClient.signIn();
 			FileObject fileObject = FileObject.getInstance(fileToExport);
 

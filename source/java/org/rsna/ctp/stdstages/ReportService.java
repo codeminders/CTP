@@ -32,6 +32,7 @@ public class ReportService {
 	}
 	
 	public static final String REPORT_FILE = "report.html";
+	public static final String REPORT_FILE_FULL = "report_full.html";
 	private static final Logger logger = Logger.getLogger(ReportService.class);
 
     private static ReportService instance;
@@ -50,7 +51,15 @@ public class ReportService {
     }
 
     private ReportService() {
-    	dumpReport("");
+    	dumpReport();
+    }
+    
+    public void clear() {
+        downloaded.clear();
+        importedFiles.clear();
+        anonymizedFiles.clear();
+        pixelAnonymizedFiles.clear();
+        exportedFiles.clear();
     }
 
     public void addDownloaded(String url) {
@@ -79,23 +88,33 @@ public class ReportService {
     	dumpReport();
     }
 
+    public String getReportFile(boolean full) {
+		return full ? REPORT_FILE_FULL : REPORT_FILE;
+	}
+
     public String loadReport() {
-    	return FileUtil.getText(new File(REPORT_FILE));
+    	try {
+    		return FileUtil.getText(new File(REPORT_FILE));
+    	} catch(Exception e) {
+    		logger.error("Error reading report from file", e);
+    	}
+    	return "NO REPORT";
     }
     
     private void dumpReport() {
-    	dumpReport(generateReport());
+    	dumpReport(generateReport(false), REPORT_FILE);
+    	dumpReport(generateReport(true), REPORT_FILE_FULL);
     }
-    
-    private void dumpReport(String data) {
-    	try (FileOutputStream fos = new FileOutputStream(REPORT_FILE)) {
+
+    private void dumpReport(String data, String filename) {
+    	try (FileOutputStream fos = new FileOutputStream(filename)) {
     		fos.write(data.getBytes());
     	} catch(Exception e) {
     		logger.error("Error writing report to file", e);
     	}
     }
-    
-    private String generateReport() {
+
+    private String generateReport(boolean fullReport) {
     	ByteArrayOutputStream os = new ByteArrayOutputStream();
     	PrintStream ps = new PrintStream(os);
     	
@@ -103,23 +122,29 @@ public class ReportService {
 
     	//REPORT for download
     	ps.println("<b>Files downloaded:</b><br>");
-    	downloaded.forEach(str ->{
-    		ps.println(str + "<br>");
-    	});
+    	if (fullReport) {
+	    	downloaded.forEach(str ->{
+	    		ps.println(str + "<br>");
+	    	});
+    	}
     	ps.print("<b>TOTAL:" + downloaded.size() + "</b><br><br>");
 
     	//REPORT for import
     	ps.println("<b>Files imported:</b><br>");
-    	importedFiles.keySet().forEach(str ->{
-    		ps.println(str + "  IN  " + importedFiles.get(str) + "<br>");
-    	});
+    	if (fullReport) {
+	    	importedFiles.keySet().forEach(str ->{
+	    		ps.println(str + "  IN  " + importedFiles.get(str) + "<br>");
+	    	});
+    	}
     	ps.print("<b>TOTAL:" + importedFiles.size() + "</b><br><br>");
     	
     	//REPORT for anonymizer
     	ps.println("<b>Files anonymized:</b><br>");
-    	anonymizedFiles.keySet().forEach(str -> {
-    		ps.println(str + ":" + anonymizedFiles.get(str).getStatus() + "<br>");
-    	});
+    	if (fullReport) {
+    		anonymizedFiles.keySet().forEach(str -> {
+    			ps.println(str + ":" + anonymizedFiles.get(str).getStatus() + "<br>");
+    		});
+    	}
     	long successCount = anonymizedFiles.values().stream().filter(st -> st.isOK()).count();
     	ps.println("<b>TOTAL SUCCESS:" + successCount + "</b><br>");
     	ps.println("<b>TOTAL FAIL:" + (anonymizedFiles.size() - successCount) + "</b><br>");
@@ -129,9 +154,11 @@ public class ReportService {
     	
     	//REPORT for pixel anonymizer
     	ps.println("<b>Files pixel-anonymized:</b><br>");
-    	pixelAnonymizedFiles.keySet().forEach(str -> {
-    		ps.println(str + ":" + pixelAnonymizedFiles.get(str).getStatus() + "<br>");
-    	});
+    	if (fullReport) {
+	    	pixelAnonymizedFiles.keySet().forEach(str -> {
+	    		ps.println(str + ":" + pixelAnonymizedFiles.get(str).getStatus() + "<br>");
+	    	});
+    	}
     	successCount = pixelAnonymizedFiles.values().stream().filter(st -> st.isOK()).count();
     	ps.println("<b>TOTAL SUCCESS:" + successCount + "</b><br>");
     	ps.println("<b>TOTAL FAIL:" + (pixelAnonymizedFiles.size() - successCount) + "</b><br>");
@@ -141,9 +168,11 @@ public class ReportService {
     	
     	//REPORT for export
     	ps.println("<b>Files exported:</b><br>");
-    	exportedFiles.keySet().forEach(str -> {
-    		ps.println(str + ":" + exportedFiles.get(str).getStatus() + "  IN  " + exportedFiles.get(str).getInfo() + "<br>");
-    	});
+    	if (fullReport) {
+	    	exportedFiles.keySet().forEach(str -> {
+	    		ps.println(str + ":" + exportedFiles.get(str).getStatus() + "  IN  " + exportedFiles.get(str).getInfo() + "<br>");
+	    	});
+    	}
     	successCount = exportedFiles.values().stream().filter(st -> st.getStatus().equals(Status.OK)).count();
     	ps.println("<b>TOTAL SUCCESS:" + successCount + "</b><br>");
     	ps.println("<b>TOTAL FAIL:" + (exportedFiles.size() - successCount) + "</b><br>");
