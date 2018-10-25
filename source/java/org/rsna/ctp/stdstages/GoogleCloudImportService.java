@@ -188,7 +188,7 @@ public class GoogleCloudImportService extends AbstractImportService {
         @Override
         public void run() {
             try {
-                downloadFile(googleClient.listDCMFileIds(dicomStoreDecriptor), importDirectory.getAbsolutePath());
+                downloadFile(googleClient.listDCMFileIds(dicomStoreDecriptor), getTempDirectory().getAbsolutePath());
             } catch (Exception e) {
                 throw new IllegalStateException(e);
             }
