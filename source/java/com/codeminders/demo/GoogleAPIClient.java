@@ -107,6 +107,22 @@ public class GoogleAPIClient {
     protected GoogleAPIClient() {
     }
 
+    private void deleteDir(java.io.File dir) {
+    	for (String filename : dir.list()) {
+    		java.io.File file = new java.io.File(filename);
+    		if (file.isDirectory()) {
+    			deleteDir(file);
+    		} else {
+    			file.delete();
+    		}
+    	}
+    	dir.delete();
+    }
+    
+    public void cleanAuth() {
+    	deleteDir(DATA_STORE_DIR);
+    }
+    
     private static Credential authorize() throws Exception {
         // load client secrets
         clientSecrets = GoogleClientSecrets.load(JSON_FACTORY,

@@ -674,6 +674,7 @@ public class ConfigPanel extends BasePanel {
 					@Override
 					public void run() {
 						try {
+							googleClient.cleanAuth();
 							logger.info("Invoking signIn()");
 							googleClient.signIn();
 						} catch (Exception e) {
