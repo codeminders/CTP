@@ -1,20 +1,10 @@
-/*---------------------------------------------------------------
- *  Copyright 2015 by the Radiological Society of North America
- *
- *  This source software is released under the terms of the
- *  RSNA Public License (http://mirc.rsna.org/rsnapubliclicense.pdf)
- *----------------------------------------------------------------*/
-
 package org.rsna.ctp.stdstages;
 
-import java.io.File;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.LinkedList;
-
+import com.codeminders.demo.DICOMGoogleClientHttpRequest;
+import com.codeminders.demo.DICOMStoreDescriptor;
+import com.codeminders.demo.GoogleAPIClient;
+import com.codeminders.demo.GoogleAPIClientFactory;
 import org.apache.log4j.Logger;
-import org.rsna.ctp.objects.DicomObject;
 import org.rsna.ctp.objects.FileObject;
 import org.rsna.ctp.pipeline.AbstractExportService;
 import org.rsna.ctp.pipeline.Status;
@@ -24,10 +14,14 @@ import org.rsna.util.XmlUtil;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import com.codeminders.demo.DICOMGoogleClientHttpRequest;
-import com.codeminders.demo.DICOMStoreDescriptor;
-import com.codeminders.demo.GoogleAPIClient;
-import com.codeminders.demo.GoogleAPIClientFactory;
+import java.io.File;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * An ExportService that exports files via the DICOM STOW-RS protocol.
@@ -42,23 +36,19 @@ public class GoogleCloudExportService extends AbstractExportService {
 
 	boolean includeContentDispositionHeader = false;
 	boolean logUnauthorizedResponses = true;
-	boolean logDuplicates = false;
-
-	/**/ LinkedList<String> recentUIDs = new LinkedList<String>();
-	/**/ LinkedList<Long> recentTimes = new LinkedList<Long>();
-	/**/static final int maxQueueSize = 10;
 
 	private DICOMStoreDescriptor dicomStoreDecriptor;
+	private ExecutorService executorService;
+	private int MAX_THREADS = 5;
+	private BlockingQueue<File> exportQueue;
+	private GoogleCloudExporter googleCloudExporter;
 
 	/**
-	 * Class constructor; creates a new instance of the ExportService.
+	 * Class constructor; creates a new instance of the GoogleCloudExportService.
 	 *
-	 * @param element
-	 *            the configuration element.
-	 * @throws Exception
-	 *             on any error
+	 * @param element the configuration element.
 	 */
-	public GoogleCloudExportService(Element element) throws Exception {
+	public GoogleCloudExportService(Element element) {
 		super(element);
 
 		// Get the flag for including the Content-Disposition header in requests
@@ -70,31 +60,70 @@ public class GoogleCloudExportService extends AbstractExportService {
 		String dicomStoreName = element.getAttribute("dicomStoreName").trim();
 
 		dicomStoreDecriptor = new DICOMStoreDescriptor(projectId, locationId, dataSetName, dicomStoreName);
+		FileUtil.deleteAll(getTempDirectory());
+	}
 
+	@Override
+	public synchronized void start() {
+		//Get the AuditLog plugin, if there is one.
+		executorService = Executors.newFixedThreadPool(MAX_THREADS);
+		exportQueue = new LinkedBlockingQueue<>();
+		googleCloudExporter = new GoogleCloudExporter();
+		googleCloudExporter.start();
+	}
+
+
+	@Override
+	public synchronized void shutdown() {
+		if (executorService != null) {
+			executorService.shutdownNow();
+		}
+		if(googleCloudExporter != null) {
+			googleCloudExporter.interrupt();
+		}
+		super.shutdown();
+	}
+
+	@Override
+	public int getQueueSize() {
+		return exportQueue.size();
+	}
+
+	@Override
+	public synchronized boolean isDown() {
+		return stop;
+	}
+
+	@Override
+	public Status export(File file) {
+		return Status.OK;
 	}
 
 	/**
-	 * Export a file.
+	 * Export a FileObject.
 	 *
-	 * @param fileToExport
-	 *            the file to export.
-	 * @return the status of the attempt to export the file.
+	 * @param fileObject the file to export.
 	 */
-	public Status export(File fileToExport) {
+	@Override
+	public void export(FileObject fileObject) {
+		File f = fileObject.copyToDirectory(getTempDirectory());
+		logger.info("Adding fileObject to export queue: " + f);
+		exportQueue.add(f);
+	}
 
+	private void exportToGCP(File fileToExport) {
 		// Do not export zero-length files
 		long fileLength = fileToExport.length();
 		if (fileLength == 0) {
-			return Status.FAIL;
+			reportStatus(fileToExport, Status.FAIL);
+			return;
 		}
 
 		try {
 			GoogleAPIClient apiClient = GoogleAPIClientFactory.getInstance().getGoogleClient();
 			apiClient.signIn();
-			FileObject fileObject = FileObject.getInstance(fileToExport);
 
 			// Establish the connection
-			apiClient.checkDicomstore(dicomStoreDecriptor);
 			URL url = new URL(apiClient.getGHCDicomstoreUrl(dicomStoreDecriptor) + "/dicomWeb/studies");
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 			conn.setReadTimeout(connectionTimeout);
@@ -138,33 +167,33 @@ public class GoogleCloudExportService extends AbstractExportService {
 					logUnauthorizedResponses = false;
 				}
 				conn.disconnect();
-				enableExport = false;
-				return reportStatus(fileObject, Status.FAIL);
+				 reportStatus(fileToExport, Status.FAIL);
+				return;
 			} else if (responseCode == HttpResponse.forbidden) {
 				if (logUnauthorizedResponses) {
 					logger.warn("Forbidden for " + url);
 					logUnauthorizedResponses = false;
 				}
 				conn.disconnect();
-				enableExport = false;
-				return reportStatus(fileObject, Status.FAIL);
+				 reportStatus(fileToExport, Status.FAIL);
+				return;
 			} else if (!logUnauthorizedResponses) {
 				logUnauthorizedResponses = true;
 			}
 
 			if (responseCode == HttpResponse.ok) {
-				makeAuditLogEntry(fileObject, Status.OK, getName(), url.toString());
-				return reportStatus(fileObject, Status.OK);
+				reportStatus(fileToExport, Status.OK);
 			} else {
-				return reportStatus(fileObject, Status.FAIL);
+				reportStatus(fileToExport, Status.FAIL);
 			}
+			fileToExport.delete();
 		} catch (Exception e) {
 			if (logger.isDebugEnabled()) {
 				logger.debug(name + ": export failed: " + e.getMessage(), e);
 			} else {
 				logger.warn(name + ": export failed: " + e.getMessage());
 			}
-			return reportStatus(fileToExport, Status.FAIL);
+			 reportStatus(fileToExport, Status.FAIL);
 		}
 	}
 
@@ -173,9 +202,35 @@ public class GoogleCloudExportService extends AbstractExportService {
 		return status;
 	}
 
-	private Status reportStatus(FileObject fileObject, Status status) {
-		String info = ((DicomObject)fileObject).getFileMetaInfo().toString();
-		ReportService.getInstance().addExported(fileObject.getFile().getAbsolutePath(), status, info);
-		return status;
+	class GoogleCloudExporter extends Thread {
+
+		GoogleCloudExporter() {
+			super("CloudExportService");
+		}
+
+		@Override
+		public void run() {
+			{
+				try {
+					GoogleAPIClient apiClient = GoogleAPIClientFactory.getInstance().createGoogleClient();
+					apiClient.signIn();
+					apiClient.checkDicomstore(dicomStoreDecriptor);
+				} catch (Exception e) {
+					logger.error("Unable to initialize CloudExportService.GoogleCloudExporter. Exiting...", e);
+					throw new RuntimeException(e);
+				}
+
+				while (!isInterrupted()) {
+					try {
+						File file = exportQueue.take();
+						executorService.submit(() -> exportToGCP(file));
+					} catch (InterruptedException interrupt) {
+						logger.info("Interrupt received. Exiting GoogleCloudExportService googleCloudExporter...");
+						return;
+					}
+				}
+				logger.info("Interrupt received. Exiting GoogleCloudExportService googleCloudExporter...");
+			}
+		}
 	}
 }
