@@ -69,8 +69,8 @@ public class ReportPanel extends BasePanel implements ActionListener {
 					GoogleAPIClient client = GoogleAPIClientFactory.getInstance().getGoogleClient();
 					client.signIn();
 					String name = client.exportStringAsGoogleDoc(
-							"DICOM Cleaner Report", 
-							"DICOM Cleaner Report", 
+							"MIRC CTP Report", 
+							"MIRC CTP Report", 
 							// We can export full version of report using 'true' for parameter in getReportFile method
 							// and 'false' for short version
 							ReportService.getInstance().getReportFile(true));

@@ -38,7 +38,6 @@ public class ReportService {
     private static ReportService instance;
 
     private List<String> downloaded = new ArrayList<>();
-    private Map<String, String> importedFiles = new HashMap<>();
     private Map<String, AnonymizerStatus> anonymizedFiles = new HashMap<>();
     private Map<String, AnonymizerStatus> pixelAnonymizedFiles = new HashMap<>();
     private Map<String, ExportInfo> exportedFiles = new HashMap<>();
@@ -56,35 +55,36 @@ public class ReportService {
     
     public void clear() {
         downloaded.clear();
-        importedFiles.clear();
         anonymizedFiles.clear();
         pixelAnonymizedFiles.clear();
         exportedFiles.clear();
     }
 
     public void addDownloaded(String url) {
-    	downloaded.add(url);
-    	dumpReport();
-    }
-
-    
-    public void addImported(String imported, String qFile) {
-    	importedFiles.put(imported, qFile);
+    	synchronized (this) {
+    		downloaded.add(url);
+    	}
     	dumpReport();
     }
     
     public void addAnonymized(String anonymized, AnonymizerStatus status) {
-    	anonymizedFiles.put(anonymized, status);
+    	synchronized (this) {
+    		anonymizedFiles.put(anonymized, status);
+    	}
     	dumpReport();
     }
 
     public void addPixelAnonymized(String anonymized, AnonymizerStatus status) {
-    	pixelAnonymizedFiles.put(anonymized, status);
+    	synchronized (this) {
+    		pixelAnonymizedFiles.put(anonymized, status);
+    	}
     	dumpReport();
     }
 
     public void addExported(String exported, Status status, String info) {
-    	exportedFiles.put(exported, new ExportInfo(status, info));
+    	synchronized (this) {
+    		exportedFiles.put(exported, new ExportInfo(status, info));
+    	}
     	dumpReport();
     }
 
@@ -129,15 +129,6 @@ public class ReportService {
     	}
     	ps.print("<b>TOTAL:" + downloaded.size() + "</b><br><br>");
 
-    	//REPORT for import
-    	ps.println("<b>Files imported:</b><br>");
-    	if (fullReport) {
-	    	importedFiles.keySet().forEach(str ->{
-	    		ps.println(str + "  IN  " + importedFiles.get(str) + "<br>");
-	    	});
-    	}
-    	ps.print("<b>TOTAL:" + importedFiles.size() + "</b><br><br>");
-    	
     	//REPORT for anonymizer
     	ps.println("<b>Files anonymized:</b><br>");
     	if (fullReport) {
@@ -170,7 +161,7 @@ public class ReportService {
     	ps.println("<b>Files exported:</b><br>");
     	if (fullReport) {
 	    	exportedFiles.keySet().forEach(str -> {
-	    		ps.println(str + ":" + exportedFiles.get(str).getStatus() + "  IN  " + exportedFiles.get(str).getInfo() + "<br>");
+	    		ps.println(str + ":" + exportedFiles.get(str).getStatus() + "<br>");
 	    	});
     	}
     	successCount = exportedFiles.values().stream().filter(st -> st.getStatus().equals(Status.OK)).count();

@@ -2,6 +2,7 @@ package com.codeminders.demo;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,6 +43,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import org.apache.log4j.Logger;
+import org.rsna.util.FileUtil;
 
 public class GoogleAPIClient {
     private final static Logger logger = Logger.getLogger(GoogleAPIClient.class);
@@ -106,21 +108,11 @@ public class GoogleAPIClient {
 
     protected GoogleAPIClient() {
     }
-
-    private void deleteDir(java.io.File dir) {
-    	for (String filename : dir.list()) {
-    		java.io.File file = new java.io.File(filename);
-    		if (file.isDirectory()) {
-    			deleteDir(file);
-    		} else {
-    			file.delete();
-    		}
-    	}
-    	dir.delete();
-    }
     
     public void cleanAuth() {
-    	deleteDir(DATA_STORE_DIR);
+    	if (!isSignedIn()) {
+    		FileUtil.deleteAll(DATA_STORE_DIR);
+    	}
     }
     
     private static Credential authorize() throws Exception {
