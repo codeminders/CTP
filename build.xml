@@ -51,6 +51,7 @@
 		<pathelement location="${libraries}/google-api-client-1.25.0.jar"/>
 		<pathelement location="${libraries}/google-api-client-java6-1.25.0.jar"/>
 		<pathelement location="${libraries}/google-api-services-cloudresourcemanager-v1-rev502-1.25.0.jar"/>
+		<pathelement location="${libraries}/google-api-services-drive-v3-rev135-1.25.0.jar"/>
 		<pathelement location="${libraries}/google-api-services-oauth2-v2-rev141-1.25.0.jar"/>
 		<pathelement location="${libraries}/gson-2.1.jar"/>
 	</path>
@@ -94,6 +95,7 @@
 								libraries/google-api-client-1.25.0.jar
 								libraries/google-api-client-java6-1.25.0.jar
 								libraries/google-api-services-cloudresourcemanager-v1-rev502-1.25.0.jar
+								libraries/google-api-services-drive-v3-rev135-1.25.0.jar
 								libraries/google-api-services-oauth2-v2-rev141-1.25.0.jar
 								libraries/google-auth-library-credentials-0.10.0.jar
 								libraries/google-auth-library-oauth2-http-0.10.0.jar

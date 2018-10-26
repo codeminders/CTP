@@ -65,7 +65,7 @@ public class ConfigPanel extends BasePanel {
 
 	static ConfigPanel configPanel = null;
 	
-	private GoogleAPIClient googleClient = GoogleAPIClientFactory.getInstance().createGoogleClient();
+	private GoogleAPIClient googleClient = GoogleAPIClientFactory.getInstance().getGoogleClient();
 	private Map<String, AttrPanel> comboBoxesMap = new HashMap<>();
 
 	public static synchronized ConfigPanel getInstance() {
@@ -674,6 +674,7 @@ public class ConfigPanel extends BasePanel {
 					@Override
 					public void run() {
 						try {
+							googleClient.cleanAuth();
 							logger.info("Invoking signIn()");
 							googleClient.signIn();
 						} catch (Exception e) {

@@ -62,7 +62,7 @@ public class GoogleCloudImportService extends AbstractImportService {
 
         dicomStoreDecriptor = new DICOMStoreDescriptor(projectId, locationId, dataSetName, dicomStoreName);
 
-        googleClient = GoogleAPIClientFactory.getInstance().createGoogleClient();
+        googleClient = GoogleAPIClientFactory.getInstance().getGoogleClient();
     }
 
     /**
@@ -86,7 +86,7 @@ public class GoogleCloudImportService extends AbstractImportService {
         if (executorService != null) {
             executorService.shutdownNow();
         }
-
+        
         if (poller != null)
             poller.interrupt();
         super.shutdown();

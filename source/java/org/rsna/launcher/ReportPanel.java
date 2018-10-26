@@ -2,11 +2,16 @@ package org.rsna.launcher;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 
+import javax.swing.JButton;
 import javax.swing.JEditorPane;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.Timer;
 import javax.swing.text.DefaultCaret;
@@ -14,6 +19,9 @@ import javax.swing.text.DefaultCaret;
 import org.rsna.ctp.stdstages.ReportService;
 import org.rsna.ui.ColorPane;
 import org.rsna.util.FileUtil;
+
+import com.codeminders.demo.GoogleAPIClient;
+import com.codeminders.demo.GoogleAPIClientFactory;
 
 public class ReportPanel extends BasePanel implements ActionListener {
 
@@ -47,6 +55,31 @@ public class ReportPanel extends BasePanel implements ActionListener {
 		jsp.setViewportView(bp);
 		jsp.getViewport().setBackground(Color.white);
 		add(jsp, BorderLayout.CENTER);
+		
+		JButton reportButton = new JButton("Export report to Google");
+		reportButton.setToolTipText("Export report to Google");
+		JPanel top = new JPanel();
+		top.add(reportButton, BorderLayout.CENTER);		
+		add(top, BorderLayout.NORTH);
+		
+		reportButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				try {
+					GoogleAPIClient client = GoogleAPIClientFactory.getInstance().getGoogleClient();
+					client.signIn();
+					String name = client.exportStringAsGoogleDoc(
+							"MIRC CTP Report", 
+							"MIRC CTP Report", 
+							// We can export full version of report using 'true' for parameter in getReportFile method
+							// and 'false' for short version
+							ReportService.getInstance().getReportFile(true));
+					JOptionPane.showMessageDialog(null, "Report exported to Google:" + name);
+				} catch(Exception ex) {
+					JOptionPane.showMessageDialog(null, "Error export to Google: " + ex.getMessage());
+				}
+			}
+		});
 
 		Timer timer = new Timer(INTERVAL, new ActionListener() {
 			public void actionPerformed(ActionEvent evt) {
@@ -62,7 +95,6 @@ public class ReportPanel extends BasePanel implements ActionListener {
 		String prevRep = out.getText();
 		if (!report.equals(prevRep)) {
 			out.setText(report);
-			
 		}
 	}
 

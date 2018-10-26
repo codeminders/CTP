@@ -13,7 +13,7 @@ public class GoogleAPIClientFactory {
         return instance;
     }
 
-    public GoogleAPIClient createGoogleClient() {
+    public GoogleAPIClient getGoogleClient() {
         if (googleAPIClient == null) {
             googleAPIClient = new GoogleAPIClient();
         }

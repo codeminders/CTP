@@ -120,7 +120,7 @@ public class GoogleCloudExportService extends AbstractExportService {
 		}
 
 		try {
-			GoogleAPIClient apiClient = GoogleAPIClientFactory.getInstance().createGoogleClient();
+			GoogleAPIClient apiClient = GoogleAPIClientFactory.getInstance().getGoogleClient();
 			apiClient.signIn();
 
 			// Establish the connection
@@ -212,7 +212,7 @@ public class GoogleCloudExportService extends AbstractExportService {
 		public void run() {
 			{
 				try {
-					GoogleAPIClient apiClient = GoogleAPIClientFactory.getInstance().createGoogleClient();
+					GoogleAPIClient apiClient = GoogleAPIClientFactory.getInstance().getGoogleClient();
 					apiClient.signIn();
 					apiClient.checkDicomstore(dicomStoreDecriptor);
 				} catch (Exception e) {
