@@ -3,6 +3,8 @@ package com.codeminders.demo;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,7 +31,6 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.util.store.DataStoreFactory;
 import com.google.api.client.util.store.FileDataStoreFactory;
-import com.google.api.client.util.store.MemoryDataStoreFactory;
 import com.google.api.services.cloudresourcemanager.CloudResourceManager;
 import com.google.api.services.cloudresourcemanager.model.ListProjectsResponse;
 import com.google.api.services.cloudresourcemanager.model.Project;
@@ -38,7 +39,6 @@ import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
 import com.google.api.services.oauth2.Oauth2;
 import com.google.api.services.oauth2.model.Tokeninfo;
-import com.google.api.services.oauth2.model.Userinfoplus;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
@@ -92,6 +92,7 @@ public class GoogleAPIClient {
 
     private static Oauth2 oauth2;
     private static GoogleClientSecrets clientSecrets;
+    private static String DEFAULT_SECRETS_FILE_NAME = "client_secrets.json";
 
     /**
      * Instance of Google Cloud Resource Manager
@@ -117,12 +118,12 @@ public class GoogleAPIClient {
     
     private static Credential authorize() throws Exception {
         // load client secrets
-        clientSecrets = GoogleClientSecrets.load(JSON_FACTORY,
-                new InputStreamReader(GoogleAPIClient.class.getResourceAsStream("/client_secrets.json")));
+        Path secrets = Paths.get(DEFAULT_SECRETS_FILE_NAME).toAbsolutePath();
+        clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(Files.newInputStream(secrets)));
         if (clientSecrets.getDetails().getClientId().startsWith("Enter")
                 || clientSecrets.getDetails().getClientSecret().startsWith("Enter ")) {
-            System.out.println("Enter Client ID and Secret from https://code.google.com/apis/console/ "
-                    + "into src/main/resources/client_secrets.json");
+            System.out.println("Generate Client ID and Secret using https://code.google.com/apis/console/ "
+                    + "and place client_secrets.json to CTP installation root folder");
             System.exit(1);
         }
         // set up authorization code flow
