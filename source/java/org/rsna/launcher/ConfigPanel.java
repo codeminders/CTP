@@ -13,13 +13,11 @@ import java.awt.dnd.*;
 import java.awt.event.*;
 import java.io.*;
 import java.util.*;
-import java.util.List;
 import java.util.regex.Pattern;
 import java.util.zip.*;
 import javax.swing.*;
 import javax.swing.border.*;
 import javax.swing.event.*;
-import javax.swing.TransferHandler;
 import javax.swing.tree.*;
 
 import com.codeminders.demo.GoogleAPIClient;
@@ -30,7 +28,6 @@ import com.codeminders.demo.ProjectDescriptor;
 
 import org.apache.log4j.Logger;
 import org.rsna.ui.ColorPane;
-import org.rsna.ui.RowLayout;
 import org.rsna.util.BrowserUtil;
 import org.rsna.util.FileUtil;
 import org.rsna.util.StringUtil;
@@ -674,6 +671,7 @@ public class ConfigPanel extends BasePanel {
 					@Override
 					public void run() {
 						try {
+							googleClient.saveProperties();
 							googleClient.cleanAuth();
 							logger.info("Invoking signIn()");
 							googleClient.signIn();
