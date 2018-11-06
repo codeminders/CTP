@@ -43,6 +43,7 @@ public class ReportPanel extends BasePanel implements ActionListener {
 		super();
 
 		out = new JEditorPane();
+		out.setEditable(false);
 		out.setContentType("text/html");
 		BasePanel bp = new BasePanel();
 		bp.add(out, BorderLayout.CENTER);
