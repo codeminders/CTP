@@ -1,32 +1,12 @@
 package com.codeminders.demo;
 
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
 import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
 import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
-import com.google.api.client.http.EmptyContent;
-import com.google.api.client.http.FileContent;
-import com.google.api.client.http.GenericUrl;
-import com.google.api.client.http.HttpContent;
-import com.google.api.client.http.HttpHeaders;
-import com.google.api.client.http.HttpRequest;
-import com.google.api.client.http.HttpResponse;
-import com.google.api.client.http.HttpTransport;
+import com.google.api.client.http.*;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.util.store.DataStoreFactory;
@@ -45,6 +25,17 @@ import com.google.gson.JsonParser;
 import org.apache.log4j.Logger;
 import org.rsna.util.FileUtil;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+
 public class GoogleAPIClient {
     private final static Logger logger = Logger.getLogger(GoogleAPIClient.class);
     /**
@@ -60,6 +51,9 @@ public class GoogleAPIClient {
      * Directory to store user credentials.
      */
     private static final java.io.File DATA_STORE_DIR = new java.io.File(System.getProperty("user.home"), ".store/google_mirc_auth");
+    private static final String GCP_SECRETS_PROPERTY_NAME = "gcpsecrets";
+    private static final String DEFAULT_SECRETS_FILE_NAME = "client_secrets.json";
+    private static final String GCP_PROPERTIES_FILE_NAME = "gcp.properties";
 
     /**
      * Global instance of the {@link DataStoreFactory}. The best practice is to make
@@ -92,7 +86,6 @@ public class GoogleAPIClient {
 
     private static Oauth2 oauth2;
     private static GoogleClientSecrets clientSecrets;
-    private static String DEFAULT_SECRETS_FILE_NAME = "client_secrets.json";
 
     /**
      * Instance of Google Cloud Resource Manager
@@ -115,15 +108,39 @@ public class GoogleAPIClient {
     		FileUtil.deleteAll(DATA_STORE_DIR);
     	}
     }
-    
+
+    /**
+     *  Read command-line properties and save it to gcp.properties file.
+     *  So this properties can be later used by other modules of CTP application
+     */
+    public static void saveProperties() {
+
+        Properties appProps = new Properties();
+        //if property specified, save it to gcp.properties file
+        String secretsLocation = System.getProperty(GCP_SECRETS_PROPERTY_NAME, DEFAULT_SECRETS_FILE_NAME);
+        appProps.setProperty(GCP_SECRETS_PROPERTY_NAME, secretsLocation);
+
+        try (FileOutputStream out = new FileOutputStream(GCP_PROPERTIES_FILE_NAME)) {
+            appProps.store(out, "Google Cloud properties");
+        } catch (IOException e) {
+            logger.error("Cannot write properties file ", e);
+            throw new RuntimeException(e);
+        }
+
+    }
+
     private static Credential authorize() throws Exception {
+        //read read value of gcpsecrets property property from gcp.properties file
+        Properties appProps = new Properties();
+        appProps.load(Files.newInputStream(Paths.get(GCP_PROPERTIES_FILE_NAME).toAbsolutePath()));
+        String secretsFileName = appProps.getProperty(GCP_SECRETS_PROPERTY_NAME, DEFAULT_SECRETS_FILE_NAME);
         // load client secrets
-        Path secrets = Paths.get(DEFAULT_SECRETS_FILE_NAME).toAbsolutePath();
+        Path secrets = Paths.get(secretsFileName).toAbsolutePath();
         clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(Files.newInputStream(secrets)));
         if (clientSecrets.getDetails().getClientId().startsWith("Enter")
                 || clientSecrets.getDetails().getClientSecret().startsWith("Enter ")) {
             System.out.println("Generate Client ID and Secret using https://code.google.com/apis/console/ "
-                    + "and place client_secrets.json to CTP installation root folder");
+                    + "and place client_secrets.json to CTP root folder");
             System.exit(1);
         }
         // set up authorization code flow
